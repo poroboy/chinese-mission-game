@@ -7,9 +7,15 @@ import {
 } from 'lucide-react'
 import { lessons, getLesson } from './data/lessons'
 import { useGame } from './state/GameContext'
-import { speakChinese } from './services/audio'
+import { getChineseVoices, speakChinese } from './services/audio'
 import { SCORE, validateLocalAnswer } from './utils/scoring'
-import type { AnswerTile, Lesson, MissionTurn, VocabWord } from './types'
+import type { AnswerTile, Lesson, MissionTurn, UserProfile, VocabWord } from './types'
+
+const playChinese = (text: string, profile?: UserProfile | null) => speakChinese(text, {
+  enabled: profile?.voiceEnabled,
+  rate: profile?.speechRate ?? 0.7,
+  voiceURI: profile?.voiceURI,
+})
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <Link to="/" className={`brand ${compact ? 'brand--compact' : ''}`}>
@@ -131,7 +137,7 @@ function WordCard({ item, learned, onLearn }: { item: VocabWord; learned: boolea
   const { profile } = useGame(); const [open, setOpen] = useState(false)
   return <article className={`word-card ${open?'open':''} ${learned?'learned':''}`}>
     <button className="word-main" onClick={()=>setOpen(!open)}><span className="word-check">{learned?<Check/>:null}</span><strong>{item.hanzi}</strong><div><b>{item.pinyin}</b><span>{item.meaningTh}</span></div><ChevronRight/></button>
-    {open && <div className="word-detail"><div><small>ตัวอย่างประโยค</small><strong>{item.example}</strong><span>{item.examplePinyin}</span><p>{item.exampleMeaningTh}</p></div><button className="audio-btn" onClick={()=>speakChinese(item.hanzi, profile?.voiceEnabled)}><Volume2/> ฟังเสียง</button><button className="learn-btn" onClick={onLearn}>{learned?<><Check/>จำได้แล้ว</>:<>ทำเครื่องหมายว่าเรียนแล้ว</>}</button></div>}
+    {open && <div className="word-detail"><div><small>ตัวอย่างประโยค</small><strong>{item.example}</strong><span>{item.examplePinyin}</span><p>{item.exampleMeaningTh}</p></div><button className="audio-btn" onClick={()=>playChinese(item.hanzi, profile)}><Volume2/> ฟังเสียง</button><button className="learn-btn" onClick={onLearn}>{learned?<><Check/>จำได้แล้ว</>:<>ทำเครื่องหมายว่าเรียนแล้ว</>}</button></div>}
   </article>
 }
 
@@ -153,7 +159,7 @@ function VocabularyPage() {
 
 function ChatBubble({ turn, showPinyin, showTranslation, onTogglePinyin, onToggleTranslation }: { turn: MissionTurn; showPinyin:boolean; showTranslation:boolean; onTogglePinyin:()=>void; onToggleTranslation:()=>void }) {
   const { profile } = useGame()
-  return <div className="npc-message"><div className="npc-avatar">林</div><div className="bubble"><span className="speaker">林老师 · AI PARTNER</span><strong>{turn.npc.hanzi}</strong>{showPinyin&&<p className="pinyin">{turn.npc.pinyin}</p>}{showTranslation&&<p className="translation">{turn.npc.meaningTh}</p>}<div className="bubble-actions"><button onClick={()=>speakChinese(turn.npc.hanzi, profile?.voiceEnabled)}><Volume2/> ฟัง</button><button className={showPinyin?'active':''} onClick={onTogglePinyin}><Languages/> พินอิน</button><button className={showTranslation?'active':''} onClick={onToggleTranslation}><BookOpen/> แปล</button></div></div></div>
+  return <div className="npc-message"><div className="npc-avatar">林</div><div className="bubble"><span className="speaker">林老师 · AI PARTNER</span><strong>{turn.npc.hanzi}</strong>{showPinyin&&<p className="pinyin">{turn.npc.pinyin}</p>}{showTranslation&&<p className="translation">{turn.npc.meaningTh}</p>}<div className="bubble-actions"><button onClick={()=>playChinese(turn.npc.hanzi, profile)}><Volume2/> ฟัง</button><button className={showPinyin?'active':''} onClick={onTogglePinyin}><Languages/> พินอิน</button><button className={showTranslation?'active':''} onClick={onToggleTranslation}><BookOpen/> แปล</button></div></div></div>
 }
 
 function Tile({ item, onAdd }: { item: AnswerTile; onAdd:()=>void }) {
@@ -205,9 +211,25 @@ function MissionPage() {
   </div>
 }
 
-function ReviewPage(){const {profile}=useGame();if(!profile)return null;const weak=lessons.flatMap(l=>l.vocab.slice(0,2).map(v=>({...v,lesson:l.order}))).slice(0,6);return <AppShell><div className="page-wrap"><PageHeader eyebrow="MISTAKE BOOK" title="ทบทวนจุดที่ยังไม่แม่น" description="ระบบจะค่อย ๆ จัดคำที่พลาดบ่อยมาให้ฝึกซ้ำ"/><div className="review-banner"><div><Sparkles/><span>ระบบทบทวนอัจฉริยะ</span><h2>ยังไม่มีคำที่ต้องกังวล</h2><p>ลองทำภารกิจ แล้วคำที่ตอบผิดจะถูกจัดคิวไว้ตรงนี้</p></div><strong>{Object.values(profile.lessonProgress).reduce((n,p)=>n+p.wrongCount,0)}<small>ข้อผิดพลาด</small></strong></div><h2 className="subheading">คำแนะนำสำหรับวันนี้</h2><div className="review-grid">{weak.map(item=><button key={item.id} onClick={()=>speakChinese(item.hanzi,profile.voiceEnabled)}><span>{item.hanzi}</span><div><strong>{item.pinyin}</strong><small>{item.meaningTh}</small></div><Volume2/></button>)}</div></div></AppShell>}
+function ReviewPage(){const {profile}=useGame();if(!profile)return null;const weak=lessons.flatMap(l=>l.vocab.slice(0,2).map(v=>({...v,lesson:l.order}))).slice(0,6);return <AppShell><div className="page-wrap"><PageHeader eyebrow="MISTAKE BOOK" title="ทบทวนจุดที่ยังไม่แม่น" description="ระบบจะค่อย ๆ จัดคำที่พลาดบ่อยมาให้ฝึกซ้ำ"/><div className="review-banner"><div><Sparkles/><span>ระบบทบทวนอัจฉริยะ</span><h2>ยังไม่มีคำที่ต้องกังวล</h2><p>ลองทำภารกิจ แล้วคำที่ตอบผิดจะถูกจัดคิวไว้ตรงนี้</p></div><strong>{Object.values(profile.lessonProgress).reduce((n,p)=>n+p.wrongCount,0)}<small>ข้อผิดพลาด</small></strong></div><h2 className="subheading">คำแนะนำสำหรับวันนี้</h2><div className="review-grid">{weak.map(item=><button key={item.id} onClick={()=>playChinese(item.hanzi,profile)}><span>{item.hanzi}</span><div><strong>{item.pinyin}</strong><small>{item.meaningTh}</small></div><Volume2/></button>)}</div></div></AppShell>}
 
-function SettingsPage(){const {profile,cloudMode,updateProfile,resetProgress,logout}=useGame();if(!profile)return null;return <AppShell><div className="page-wrap settings-page"><PageHeader eyebrow="PLAYER SETTINGS" title="ตั้งค่าการเรียน" description="ปรับภารกิจให้เข้ากับจังหวะของคุณ"/><div className="settings-card"><div className="profile-line"><div className="avatar large">{profile.displayName[0]}</div><div><strong>{profile.displayName}</strong><span>{profile.email}</span></div><span className="mode-badge">{cloudMode?'FIREBASE CLOUD':'DEMO MODE'}</span></div><label><span><Volume2/>เสียงภาษาจีน<small>เล่นเสียงคำศัพท์และบทสนทนา</small></span><input type="checkbox" checked={profile.voiceEnabled} onChange={e=>updateProfile({voiceEnabled:e.target.checked})}/></label><label><span><Gauge/>เป้าหมายต่อวัน<small>จำนวนนาทีที่อยากเรียนในแต่ละวัน</small></span><select value={profile.dailyGoal} onChange={e=>updateProfile({dailyGoal:Number(e.target.value)})}><option value="5">5 นาที</option><option value="10">10 นาที</option><option value="15">15 นาที</option><option value="20">20 นาที</option></select></label><button className="settings-action danger" onClick={()=>{if(window.confirm('รีเซ็ตคะแนนและความคืบหน้าทั้งหมด?'))resetProgress()}}><RotateCcw/>รีเซ็ตความคืบหน้า</button><button className="settings-action" onClick={logout}><LogOut/>ออกจากระบบ</button></div></div></AppShell>}
+function SettingsPage(){
+  const {profile,cloudMode,updateProfile,resetProgress,logout}=useGame()
+  const [voices,setVoices]=useState<SpeechSynthesisVoice[]>([])
+  useEffect(()=>{
+    const loadVoices=()=>setVoices(getChineseVoices())
+    loadVoices()
+    window.speechSynthesis?.addEventListener('voiceschanged',loadVoices)
+    return()=>window.speechSynthesis?.removeEventListener('voiceschanged',loadVoices)
+  },[])
+  if(!profile)return null
+  return <AppShell><div className="page-wrap settings-page"><PageHeader eyebrow="PLAYER SETTINGS" title="ตั้งค่าการเรียน" description="ปรับภารกิจให้เข้ากับจังหวะของคุณ"/><div className="settings-card"><div className="profile-line"><div className="avatar large">{profile.displayName[0]}</div><div><strong>{profile.displayName}</strong><span>{profile.email}</span></div><span className="mode-badge">{cloudMode?'FIREBASE CLOUD':'DEMO MODE'}</span></div>
+    <label><span><Volume2/>เสียงภาษาจีน<small>เล่นเสียงคำศัพท์และบทสนทนา</small></span><input type="checkbox" checked={profile.voiceEnabled} onChange={e=>updateProfile({voiceEnabled:e.target.checked})}/></label>
+    <label><span><UserRound/>ผู้ให้เสียง<small>{voices.length ? `พบเสียงจีน ${voices.length} เสียงในเครื่อง` : 'ใช้เสียงจีนเริ่มต้นของ browser'}</small></span><select className="voice-select" value={profile.voiceURI??''} onChange={e=>updateProfile({voiceURI:e.target.value})}><option value="">อัตโนมัติ</option>{voices.map(voice=><option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} · {voice.lang}</option>)}</select></label>
+    <label><span><Gauge/>ความเร็วเสียง<small>ช้าลงช่วยให้แยกพยางค์ง่ายขึ้น</small></span><div className="rate-control"><input aria-label="ความเร็วเสียง" type="range" min="0.5" max="1" step="0.05" value={profile.speechRate??0.7} onChange={e=>updateProfile({speechRate:Number(e.target.value)})}/><strong>{(profile.speechRate??0.7).toFixed(2)}×</strong></div></label>
+    <button className="voice-preview" onClick={()=>playChinese('你好，你叫什么名字？',profile)}><Volume2/> ทดลองฟังเสียง</button>
+    <label><span><Gauge/>เป้าหมายต่อวัน<small>จำนวนนาทีที่อยากเรียนในแต่ละวัน</small></span><select value={profile.dailyGoal} onChange={e=>updateProfile({dailyGoal:Number(e.target.value)})}><option value="5">5 นาที</option><option value="10">10 นาที</option><option value="15">15 นาที</option><option value="20">20 นาที</option></select></label><button className="settings-action danger" onClick={()=>{if(window.confirm('รีเซ็ตคะแนนและความคืบหน้าทั้งหมด?'))resetProgress()}}><RotateCcw/>รีเซ็ตความคืบหน้า</button><button className="settings-action" onClick={logout}><LogOut/>ออกจากระบบ</button></div></div></AppShell>
+}
 
 export function App() {
   const { profile, loading } = useGame()

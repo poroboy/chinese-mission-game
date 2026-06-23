@@ -43,6 +43,7 @@ const makeProfile = (user?: User): UserProfile => ({
   currentLessonId: 'lesson-1',
   dailyGoal: 10,
   voiceEnabled: true,
+  speechRate: 0.7,
   lessonProgress: initialLessonProgress(),
 })
 

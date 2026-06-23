@@ -12,7 +12,8 @@ const config = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-export const isFirebaseConfigured = Boolean(config.apiKey && config.projectId && config.appId)
+export const isFirebaseConfigured = import.meta.env.VITE_DEMO_MODE !== 'true'
+  && Boolean(config.apiKey && config.projectId && config.appId)
 
 let app: FirebaseApp | undefined
 let auth: Auth | undefined

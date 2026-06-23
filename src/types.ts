@@ -54,5 +54,7 @@ export type UserProfile = {
   currentLessonId: string
   dailyGoal: number
   voiceEnabled: boolean
+  voiceURI?: string
+  speechRate?: number
   lessonProgress: Record<string, LessonProgress>
 }
